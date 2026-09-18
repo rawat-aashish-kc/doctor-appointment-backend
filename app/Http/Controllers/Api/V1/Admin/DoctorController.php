@@ -17,7 +17,7 @@ class DoctorController extends Controller
 {
     public function index(): AnonymousResourceCollection
     {
-        return DoctorResource::collection(Doctor::with('availabilities')->get());
+        return DoctorResource::collection(Doctor::with(['availabilities', 'breaks'])->get());
     }
 
     public function store(StoreDoctorRequest $request): JsonResponse
@@ -41,7 +41,7 @@ class DoctorController extends Controller
 
     public function show(Doctor $doctor): DoctorResource
     {
-        return new DoctorResource($doctor->load('availabilities'));
+        return new DoctorResource($doctor->load(['availabilities', 'breaks']));
     }
 
     public function update(UpdateDoctorRequest $request, Doctor $doctor): DoctorResource
@@ -57,7 +57,7 @@ class DoctorController extends Controller
             }
         });
 
-        return new DoctorResource($doctor->load('availabilities'));
+        return new DoctorResource($doctor->load(['availabilities', 'breaks']));
     }
 
     public function destroy(Doctor $doctor): JsonResponse

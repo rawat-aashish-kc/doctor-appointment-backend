@@ -27,6 +27,12 @@ class Doctor extends Model
         return $this->hasMany(Appointment::class);
     }
 
+    /** @return HasMany<DoctorBreak, $this> */
+    public function breaks(): HasMany
+    {
+        return $this->hasMany(DoctorBreak::class);
+    }
+
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {

@@ -24,8 +24,8 @@ class UpdateAvailabilityRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'availabilities' => ['required', 'array', 'max:7'],
-            'availabilities.*.day_of_week' => ['required', 'integer', 'between:0,6', 'distinct'],
+            'availabilities' => ['required', 'array', 'max:50'],
+            'availabilities.*.day_of_week' => ['required', 'integer', 'between:0,6'],
             'availabilities.*.start_time' => ['required', 'date_format:H:i'],
             'availabilities.*.end_time' => ['required', 'date_format:H:i'],
         ];
@@ -38,9 +38,29 @@ class UpdateAvailabilityRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
-                foreach ($this->input('availabilities', []) as $index => $row) {
+                $rows = $this->input('availabilities', []);
+
+                foreach ($rows as $index => $row) {
                     if (($row['start_time'] ?? null) >= ($row['end_time'] ?? null)) {
                         $validator->errors()->add("availabilities.$index.end_time", 'End time must be after start time.');
+                    }
+                }
+
+                $byDay = [];
+                foreach ($rows as $index => $row) {
+                    $byDay[$row['day_of_week'] ?? null][] = ['index' => $index, ...$row];
+                }
+
+                foreach ($byDay as $periods) {
+                    usort($periods, fn ($a, $b) => strcmp($a['start_time'] ?? '', $b['start_time'] ?? ''));
+
+                    for ($i = 1; $i < count($periods); $i++) {
+                        if (($periods[$i]['start_time'] ?? null) < ($periods[$i - 1]['end_time'] ?? null)) {
+                            $validator->errors()->add(
+                                "availabilities.{$periods[$i]['index']}.start_time",
+                                'This period overlaps another period on the same day.'
+                            );
+                        }
                     }
                 }
             },

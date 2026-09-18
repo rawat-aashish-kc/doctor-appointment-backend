@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AppointmentController as AdminAppointmentController;
 use App\Http\Controllers\Api\V1\Admin\DoctorAvailabilityController;
+use App\Http\Controllers\Api\V1\Admin\DoctorBreakController;
 use App\Http\Controllers\Api\V1\Admin\DoctorController as AdminDoctorController;
 use App\Http\Controllers\Api\V1\AppointmentController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
@@ -36,6 +37,8 @@ Route::prefix('v1')->group(function () {
         Route::middleware('role:admin')->prefix('admin')->group(function () {
             Route::apiResource('doctors', AdminDoctorController::class);
             Route::put('doctors/{doctor}/availability', [DoctorAvailabilityController::class, 'update']);
+            Route::post('doctors/{doctor}/breaks', [DoctorBreakController::class, 'store']);
+            Route::delete('doctors/{doctor}/breaks/{break}', [DoctorBreakController::class, 'destroy']);
             Route::get('appointments', [AdminAppointmentController::class, 'index']);
         });
     });

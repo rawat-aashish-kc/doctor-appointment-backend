@@ -21,6 +21,7 @@ class DoctorResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'availabilities' => DoctorAvailabilityResource::collection($this->whenLoaded('availabilities')),
+            'breaks' => DoctorBreakResource::collection($this->whenLoaded('breaks')),
         ];
     }
 }

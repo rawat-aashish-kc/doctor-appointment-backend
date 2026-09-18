@@ -44,6 +44,33 @@ test('end time must be after start time', function () {
     ])->assertUnprocessable();
 });
 
+test('admin can set multiple availability periods on the same day', function () {
+    $admin = User::factory()->admin()->create();
+    $doctor = Doctor::factory()->create();
+
+    $response = $this->actingAs($admin)->putJson("/api/v1/admin/doctors/{$doctor->id}/availability", [
+        'availabilities' => [
+            ['day_of_week' => 1, 'start_time' => '09:00', 'end_time' => '13:00'],
+            ['day_of_week' => 1, 'start_time' => '14:00', 'end_time' => '17:00'],
+        ],
+    ]);
+
+    $response->assertOk();
+    expect($doctor->availabilities()->where('day_of_week', 1)->count())->toBe(2);
+});
+
+test('overlapping periods on the same day are rejected', function () {
+    $admin = User::factory()->admin()->create();
+    $doctor = Doctor::factory()->create();
+
+    $this->actingAs($admin)->putJson("/api/v1/admin/doctors/{$doctor->id}/availability", [
+        'availabilities' => [
+            ['day_of_week' => 1, 'start_time' => '09:00', 'end_time' => '13:00'],
+            ['day_of_week' => 1, 'start_time' => '12:00', 'end_time' => '17:00'],
+        ],
+    ])->assertUnprocessable();
+});
+
 test('a non-admin cannot set availability', function () {
     $patient = User::factory()->create();
     $doctor = Doctor::factory()->create();
