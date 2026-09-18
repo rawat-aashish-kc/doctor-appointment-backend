@@ -1,58 +1,73 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Doctor Appointment Booking — Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel API for a clinic appointment booking system with three portals: Admin, Patient, and Doctor. Sanctum token auth, MySQL, Pest tests.
 
-## About Laravel
+## Requirements
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.3+
+- Composer
+- MySQL (or any Laravel-supported DB — update `.env` accordingly)
+- Node.js (only needed if you also run `npm run dev`/`composer run dev` for asset watching; not required to serve the API)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Setup
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+cp .env.example .env
+php artisan key:generate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Edit `.env` and point it at your database:
 
-## Contributing
+```
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=doctor_appointment_backend
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Create the database (e.g. `mysql -u root -e "CREATE DATABASE doctor_appointment_backend"`), then migrate and seed:
 
-## Code of Conduct
+```bash
+php artisan migrate:fresh --seed
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Seeding creates one admin account, a handful of sample doctors (each with their own login), and their weekly availability. See **Seeded accounts** below.
 
-## Security Vulnerabilities
+Start the API:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan serve
+```
 
-## License
+The API is served at `http://localhost:8000`, all routes prefixed `/api/v1` (e.g. `http://localhost:8000/api/v1/login`). The frontend expects this exact base URL by default — see the frontend README.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Seeded accounts
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@clinic.test` | `password` |
+| Doctor (Dr. Alice Nguyen) | `alice.nguyen@clinic.test` | `password` |
+| Doctor (Dr. Ben Carter) | `ben.carter@clinic.test` | `password` |
+| Doctor (Dr. Priya Shah) | `priya.shah@clinic.test` | `password` |
+
+Patients aren't seeded — register one from the frontend's `/register` page.
+
+## Running tests
+
+```bash
+php artisan test --compact
+```
+
+## Auth model
+
+Sanctum in **token mode**: `POST /api/v1/login` (any role) or `POST /api/v1/register` (patients only) returns a bearer token. Send it as `Authorization: Bearer <token>` on subsequent requests. There's no session/cookie auth — this is a plain token API, safe to call from a frontend on a different port/origin.
+
+## Domain notes
+
+- A doctor is a profile record (`doctors` table), optionally linked to a login-capable `users` row (`role: doctor`) — created together when admin adds a doctor with an email+password.
+- A doctor can have **multiple availability periods per day** (e.g. 9–1 and 2–5) — the gap between periods is never offered as a bookable slot.
+- Admin can add a one-off **break** for a doctor on a specific date. If it overlaps an existing booked appointment, that appointment is automatically moved to the nearest free slot that same day, or cancelled if nothing is free.
+- Appointment slots are always computed server-side (`App\Services\DoctorSlotFinder`) from availability minus breaks minus existing bookings — the frontend never decides what's bookable.
